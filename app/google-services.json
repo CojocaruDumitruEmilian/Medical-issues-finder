@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "98756276364",
+    "project_id": "proiectdiplomafirebase",
+    "storage_bucket": "proiectdiplomafirebase.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:98756276364:android:dcd0423240371b249acba9",
+        "android_client_info": {
+          "package_name": "com.example.myapplicationjava"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlqVYk8IqyUKTrUhIpee_Uhw3fMgajfLQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:98756276364:android:a61f1e4d3caaf01a9acba9",
+        "android_client_info": {
+          "package_name": "com.example.proiectdiploma"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlqVYk8IqyUKTrUhIpee_Uhw3fMgajfLQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
