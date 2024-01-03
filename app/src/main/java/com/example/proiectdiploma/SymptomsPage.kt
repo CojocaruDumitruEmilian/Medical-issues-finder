@@ -1,5 +1,6 @@
 package com.example.proiectdiploma
 
+import android.content.Intent
 import android.os.AsyncTask
 import android.os.Bundle
 import android.view.View
@@ -7,6 +8,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.google.firebase.auth.FirebaseAuth
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -26,6 +28,8 @@ class SymptomsPage : AppCompatActivity() {
         resultTextView = findViewById(R.id.resultTextView)
         inputSymptomEditText = findViewById(R.id.inputSymptom)
         val analyzeButton: Button = findViewById(R.id.analyzeButton)
+        val signOutButton: Button = findViewById(R.id.logoutButton)
+
 
         analyzeButton.setOnClickListener {
             // Obține simptomele introduse de utilizator
@@ -40,6 +44,21 @@ class SymptomsPage : AppCompatActivity() {
                 resultTextView.text = "Please enter a symptom."
             }
         }
+        //
+        signOutButton.setOnClickListener {
+            // Implementează aici deconectarea și redirecționarea către pagina de login
+            signOut()
+        }
+
+
+        //
+    }
+
+   private fun signOut() {
+        FirebaseAuth.getInstance().signOut()
+        val intent = Intent(this, Login::class.java)
+        startActivity(intent)
+        finish()
     }
 
     private inner class SymptomAnalyzer : AsyncTask<String, Void, String>() {
