@@ -3,7 +3,6 @@ package com.example.proiectdiploma
 import android.content.Intent
 import android.os.AsyncTask
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -20,6 +19,7 @@ class SymptomsPage : AppCompatActivity() {
 
     private lateinit var resultTextView: TextView
     private lateinit var inputSymptomEditText: EditText
+    private lateinit var inputNpiEditText: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,34 +27,38 @@ class SymptomsPage : AppCompatActivity() {
 
         resultTextView = findViewById(R.id.resultTextView)
         inputSymptomEditText = findViewById(R.id.inputSymptom)
-        val analyzeButton: Button = findViewById(R.id.analyzeButton)
-        val signOutButton: Button = findViewById(R.id.logoutButton)
+        inputNpiEditText = findViewById(R.id.inputNpi)
 
+        val analyzeButton: Button = findViewById(R.id.analyzeButton)
+        val searchDoctorButton: Button = findViewById(R.id.searchDoctorButton)
+        val logoutButton: Button = findViewById(R.id.logoutButton)
 
         analyzeButton.setOnClickListener {
-            // Obține simptomele introduse de utilizator
             val userSymptoms = inputSymptomEditText.text.toString()
 
-            // Verifică dacă utilizatorul a introdus un simptom
             if (!userSymptoms.isEmpty()) {
-                // Simpla cerere de exemplu
                 SymptomAnalyzer().execute(userSymptoms)
             } else {
-                // Dacă nu s-a introdus niciun simptom, afișează un mesaj de eroare
                 resultTextView.text = "Please enter a symptom."
             }
         }
-        //
-        signOutButton.setOnClickListener {
-            // Implementează aici deconectarea și redirecționarea către pagina de login
-            signOut()
+
+        searchDoctorButton.setOnClickListener {
+            val userNpi = inputNpiEditText.text.toString()
+
+            if (!userNpi.isEmpty()) {
+                SearchDoctorTask().execute(userNpi)
+            } else {
+                resultTextView.text = "Please enter an NPI."
+            }
         }
 
-
-        //
+        logoutButton.setOnClickListener {
+            signOut()
+        }
     }
 
-   private fun signOut() {
+    private fun signOut() {
         FirebaseAuth.getInstance().signOut()
         val intent = Intent(this, Login::class.java)
         startActivity(intent)
@@ -64,27 +68,22 @@ class SymptomsPage : AppCompatActivity() {
     private inner class SymptomAnalyzer : AsyncTask<String, Void, String>() {
         override fun doInBackground(vararg symptoms: String): String {
             return try {
-                // Construiește URL-ul cererii HTTP
                 val apiUrl = "https://symptom-checker4.p.rapidapi.com/analyze"
                 val url = URL(apiUrl)
 
-                // Deschide conexiunea HTTP
-                val urlConnection: HttpURLConnection = url.openConnection() as HttpURLConnection
+                val urlConnection = url.openConnection() as HttpURLConnection
                 urlConnection.setRequestProperty("content-type", "application/json")
                 urlConnection.setRequestProperty("X-RapidAPI-Key", "3805f589d9msh0dd1ef9116386fdp179a17jsnb1d6e94282e9")
                 urlConnection.setRequestProperty("X-RapidAPI-Host", "symptom-checker4.p.rapidapi.com")
                 urlConnection.requestMethod = "POST"
 
-                // Construiește corpul cererii din simptomele primite
                 val body = "{\"symptoms\": \"${symptoms[0]}\"}"
 
-                // Trimite corpul cererii
                 urlConnection.doOutput = true
                 val os: OutputStream = urlConnection.outputStream
                 os.write(body.toByteArray(charset("utf-8")))
                 os.close()
 
-                // Citeste raspunsul
                 val `in` = BufferedReader(InputStreamReader(urlConnection.inputStream))
                 val response = StringBuilder()
                 var line: String?
@@ -93,7 +92,6 @@ class SymptomsPage : AppCompatActivity() {
                 }
                 `in`.close()
 
-                // Returneaza raspunsul
                 response.toString()
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -102,7 +100,37 @@ class SymptomsPage : AppCompatActivity() {
         }
 
         override fun onPostExecute(result: String) {
-            // Afișează rezultatul în TextView
+            resultTextView.text = result
+        }
+    }
+
+    private inner class SearchDoctorTask : AsyncTask<String, Void, String>() {
+        override fun doInBackground(vararg params: String): String {
+            return try {
+                val apiUrl = "https://us-doctors-and-medical-professionals.p.rapidapi.com/search_npi?npi=${params[0]}"
+                val url = URL(apiUrl)
+
+                val urlConnection = url.openConnection() as HttpURLConnection
+                urlConnection.setRequestProperty("X-RapidAPI-Key", "3805f589d9msh0dd1ef9116386fdp179a17jsnb1d6e94282e9")
+                urlConnection.setRequestProperty("X-RapidAPI-Host", "us-doctors-and-medical-professionals.p.rapidapi.com")
+                urlConnection.requestMethod = "GET"
+
+                val `in` = BufferedReader(InputStreamReader(urlConnection.inputStream))
+                val response = StringBuilder()
+                var line: String?
+                while (`in`.readLine().also { line = it } != null) {
+                    response.append(line)
+                }
+                `in`.close()
+
+                response.toString()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                "Error occurred."
+            }
+        }
+
+        override fun onPostExecute(result: String) {
             resultTextView.text = result
         }
     }
