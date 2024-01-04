@@ -40,6 +40,16 @@ class SymptomsPage : AppCompatActivity() {
 
             if (!userSymptoms.isEmpty()) {
                 SymptomAnalyzer().execute(userSymptoms)
+                /*val selectedDoctor = getSpecialtyForSymptoms(userSymptoms)
+                if (selectedDoctor.isNotEmpty()) {
+                    resultTextView.text = "Recommended doctor for symptoms: $selectedDoctor"
+                    SearchDoctorTask().execute(selectedDoctor)
+                } else {
+                    resultTextView.text = "No matching doctor found for the given symptoms."
+                }*/
+
+
+                //
             } else {
                 resultTextView.text = "Please enter a symptom."
             }
@@ -65,6 +75,17 @@ class SymptomsPage : AppCompatActivity() {
         val intent = Intent(this, Login::class.java)
         startActivity(intent)
         finish()
+    }
+
+    private fun getSpecialtyForSymptoms(symptoms: String): String {
+        // Aici poți adăuga logica ta pentru a determina specialitatea doctorului în funcție de simptome
+        // În exemplul de mai jos, se face o simplă comparare cu un șir de simptome predefinit
+        return when {
+            symptoms.contains("Malaria", ignoreCase = true) -> "Neurologist"
+            symptoms.contains("fever", ignoreCase = true) -> "Internal Medicine"
+            // Adaugă alte cazuri pentru alte simptome sau modifică după necesitate
+            else -> ""
+        }
     }
 
     private inner class SymptomAnalyzer : AsyncTask<String, Void, String>() {
@@ -112,13 +133,30 @@ class SymptomsPage : AppCompatActivity() {
                 val potentialCausesArray = jsonObject.getJSONArray("potentialCauses")
 
                 // Construiește un șir de afișare a potențialelor cauze
-                val causesStringBuilder = StringBuilder()
+                /*val causesStringBuilder = StringBuilder()
                 for (i in 0 until potentialCausesArray.length()) {
                     causesStringBuilder.append("${i + 1}: \"${potentialCausesArray.getString(i)}\"\n")
+                }*/
+
+                val potentialCausesStringBuilder = StringBuilder()
+                for (i in 0 until potentialCausesArray.length()) {
+                    potentialCausesStringBuilder.append("${i + 1}: \"${potentialCausesArray.getString(i)}\"\n")
                 }
 
-                // Afișează potențialele cauze în TextView
-                resultTextView.text = causesStringBuilder.toString()
+                // Afișează lista de potențiale cauze în TextView
+                resultTextView.text = potentialCausesStringBuilder.toString()
+
+                // Compară fiecare "potentialCause" cu un șir introdus manual
+                val userSelectedCause = "Malaria" // înlocuiește cu șirul introdus de utilizator
+                val selectedDoctor = getSpecialtyForSymptoms(userSelectedCause)
+
+                // Afișează recomandarea doctorului la final
+                if (selectedDoctor.isNotEmpty()) {
+                    resultTextView.append("\n\nRecommended doctor for selected cause \"$userSelectedCause\": $selectedDoctor")
+                    SearchDoctorTask().execute(selectedDoctor)
+                } else {
+                    resultTextView.append("\n\nNo matching doctor found for the selected cause.")
+                }
             } catch (e: JSONException) {
                 e.printStackTrace()
                 resultTextView.text = "Error parsing response: ${e.message}"
