@@ -8,6 +8,8 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
+import org.json.JSONException
+import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
@@ -100,7 +102,29 @@ class SymptomsPage : AppCompatActivity() {
         }
 
         override fun onPostExecute(result: String) {
-            resultTextView.text = result
+           // resultTextView.text = result
+
+            try {
+                // Parsează răspunsul JSON
+                val jsonObject = JSONObject(result)
+
+                // Extrage lista de potențiale cauze
+                val potentialCausesArray = jsonObject.getJSONArray("potentialCauses")
+
+                // Construiește un șir de afișare a potențialelor cauze
+                val causesStringBuilder = StringBuilder()
+                for (i in 0 until potentialCausesArray.length()) {
+                    causesStringBuilder.append("${i + 1}: \"${potentialCausesArray.getString(i)}\"\n")
+                }
+
+                // Afișează potențialele cauze în TextView
+                resultTextView.text = causesStringBuilder.toString()
+            } catch (e: JSONException) {
+                e.printStackTrace()
+                resultTextView.text = "Error parsing response: ${e.message}"
+            }
+
+            //
         }
     }
 
@@ -131,7 +155,22 @@ class SymptomsPage : AppCompatActivity() {
         }
 
         override fun onPostExecute(result: String) {
-            resultTextView.text = result
+            try {
+                // Parsează răspunsul JSON
+                val jsonObject = JSONObject(result)
+                val dataObject = jsonObject.getJSONObject("Data")
+
+                // Extrage numele și prenumele
+                val providerFirstName = dataObject.getString("Provider_First_Name")
+                val providerLastName = dataObject.getString("ProviderLastName_Legal_Name")
+
+                // Afișează numele și prenumele în TextView
+                resultTextView.text = "Name: $providerFirstName $providerLastName"
+            } catch (e: JSONException) {
+                e.printStackTrace()
+                resultTextView.text = "Error parsing response: ${e.message}"
+
+            }
         }
     }
 }
