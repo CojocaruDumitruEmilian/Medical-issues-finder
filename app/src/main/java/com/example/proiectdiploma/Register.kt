@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.text.InputType
 import android.text.TextUtils
 import android.util.Log
 import android.view.View
@@ -45,6 +46,8 @@ class Register : AppCompatActivity() {
 
         editTextEmail=findViewById(R.id.email)
         editTextPassword=findViewById(R.id.password)
+        editTextPassword.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD  // Adaugă această linie
+
         buttonReg=findViewById(R.id.btn_register)
         progressbar=findViewById(R.id.progressBar)
         textView=findViewById(R.id.loginNow)

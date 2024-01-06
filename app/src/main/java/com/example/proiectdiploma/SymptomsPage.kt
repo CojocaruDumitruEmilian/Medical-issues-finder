@@ -35,12 +35,12 @@ class SymptomsPage : AppCompatActivity() {
 
         resultTextView = findViewById(R.id.resultTextView)
         inputSymptomEditText = findViewById(R.id.inputSymptom)
-        inputNpiEditText = findViewById(R.id.inputNpi)
+        //inputNpiEditText = findViewById(R.id.inputNpi)
         doctorInfoTextView = findViewById(R.id.doctorInfoTextView)
 
 
         val analyzeButton: Button = findViewById(R.id.analyzeButton)
-        val searchDoctorButton: Button = findViewById(R.id.searchDoctorButton)
+       // val searchDoctorButton: Button = findViewById(R.id.searchDoctorButton)
         val logoutButton: Button = findViewById(R.id.logoutButton)
 
         analyzeButton.setOnClickListener {
@@ -63,7 +63,7 @@ class SymptomsPage : AppCompatActivity() {
             }
         }
 
-        searchDoctorButton.setOnClickListener {
+        /*searchDoctorButton.setOnClickListener {
             val userSymptoms = inputSymptomEditText.text.toString()
             var selectedNpi: String = ""
 
@@ -78,7 +78,7 @@ class SymptomsPage : AppCompatActivity() {
             } else {
                 resultTextView.text = "Please enter a symptom."
             }
-        }
+        }*/
 
 
         logoutButton.setOnClickListener {
