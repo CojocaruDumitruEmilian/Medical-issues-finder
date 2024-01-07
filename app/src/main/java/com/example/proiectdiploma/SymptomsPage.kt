@@ -66,6 +66,7 @@ class SymptomsPage : AppCompatActivity() {
     private inner class SymptomAnalyzer : AsyncTask<String, Void, String>() {
         override fun doInBackground(vararg symptoms: String): String {
             return try {
+
                 val apiUrl = "https://symptom-checker4.p.rapidapi.com/analyze"
                 val url = URL(apiUrl)
 
@@ -91,6 +92,7 @@ class SymptomsPage : AppCompatActivity() {
                 `in`.close()
 
                 response.toString()
+
             } catch (e: IOException) {
                 e.printStackTrace()
                 "Error occurred."
@@ -99,8 +101,11 @@ class SymptomsPage : AppCompatActivity() {
 
         override fun onPostExecute(result: String) {
             try {
-                val potentialCauses = parseSymptomsResult(result)
-                addSymptomsToFirestore(potentialCauses)
+                val currentUser = FirebaseAuth.getInstance().currentUser
+                currentUser?.let { user ->
+                    val potentialCauses = parseSymptomsResult(result)
+                    addSymptomsToFirestore(user.uid, potentialCauses)
+                }
             } catch (e: JSONException) {
                 e.printStackTrace()
                 resultTextView.text = "Error parsing response: ${e.message}"
@@ -163,20 +168,39 @@ class SymptomsPage : AppCompatActivity() {
         }
     }
 
-    private fun addSymptomsToFirestore(potentialCauses: List<String>) {
-        val currentUser = FirebaseAuth.getInstance().currentUser
-        currentUser?.let { user ->
-            val userDocument = FirebaseFirestore.getInstance().collection("users").document(user.uid)
+    private fun addSymptomsToFirestore(uid: String, potentialCauses: List<String>) {
+        val userDocument = FirebaseFirestore.getInstance().collection("users").document(uid)
 
-            userDocument.update("potentialCauses", FieldValue.arrayUnion(*potentialCauses.toTypedArray()))
-                .addOnSuccessListener {
-                   // resultTextView.text = "Potential Causes added to Firestore."
+        userDocument.get()
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val document = task.result
+                    if (document != null && document.exists()) {
+                        // Document existent, actualizați lista de cauze potențiale
+                        userDocument.update("potentialCauses", FieldValue.arrayUnion(*potentialCauses.toTypedArray()))
+                            .addOnSuccessListener {
+                                resultTextView.text = "Potential Causes added to Firestore."
+                            }
+                            .addOnFailureListener { e ->
+                                resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
+                            }
+                    } else {
+                        // Document inexistent, creați documentul și adăugați lista de cauze potențiale
+                        userDocument.set(mapOf("potentialCauses" to potentialCauses))
+                            .addOnSuccessListener {
+                               // resultTextView.text = "Potential Causes added to Firestore."
+                            }
+                            .addOnFailureListener { e ->
+                              //  resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
+                            }
+                    }
+                } else {
+                    resultTextView.text = "Error checking Firestore document: ${task.exception?.message}"
                 }
-                .addOnFailureListener { e ->
-                    //resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
-                }
-        }
+            }
     }
+
+
 
     private inner class SearchDoctorTask(private val selectedNpi: String) : AsyncTask<Void, Void, String>() {
         override fun doInBackground(vararg params: Void): String {
