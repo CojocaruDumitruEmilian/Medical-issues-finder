@@ -27,7 +27,8 @@ class Login : AppCompatActivity() {
         auth = FirebaseAuth.getInstance()
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            val intent = Intent(applicationContext, MainActivity::class.java)
+            val intent = Intent(applicationContext, SymptomsPage::class.java)
+            intent.putExtra("USERNAME", currentUser.displayName)
             startActivity(intent)
             finish()
         }
@@ -71,15 +72,16 @@ class Login : AppCompatActivity() {
                 .addOnCompleteListener(this) { task ->
                     progressbar.visibility = View.VISIBLE
                     if (task.isSuccessful) {
+                        val user = auth.currentUser
+                        val username = user?.displayName ?: "User"
+
                         Toast.makeText(
                             this,
                             "Login successful",
                             Toast.LENGTH_SHORT
                         ).show()
-                        val intent = Intent(applicationContext, MainActivity::class.java)
-                        startActivity(intent)
-                        finish()
 
+                        onLoginSuccess(username)
                     } else {
                         // If sign in fails, display a message to the user.
                         Toast.makeText(
@@ -90,5 +92,12 @@ class Login : AppCompatActivity() {
                     }
                 }
         }
+    }
+
+    private fun onLoginSuccess(username: String) {
+        val intent = Intent(this, SymptomsPage::class.java)
+        intent.putExtra("USERNAME", username)
+        startActivity(intent)
+        finish()
     }
 }

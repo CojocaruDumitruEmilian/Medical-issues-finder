@@ -9,6 +9,8 @@ import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
@@ -20,7 +22,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class SymptomsPage : AppCompatActivity() {
-
+    private lateinit var auth: FirebaseAuth
     private lateinit var resultTextView: TextView
     private lateinit var inputSymptomEditText: EditText
     private lateinit var inputNpiEditText: EditText
@@ -28,19 +30,15 @@ class SymptomsPage : AppCompatActivity() {
 
     private var selectedNpi: String = ""
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_symptoms_page)
 
         resultTextView = findViewById(R.id.resultTextView)
         inputSymptomEditText = findViewById(R.id.inputSymptom)
-        //inputNpiEditText = findViewById(R.id.inputNpi)
         doctorInfoTextView = findViewById(R.id.doctorInfoTextView)
 
-
         val analyzeButton: Button = findViewById(R.id.analyzeButton)
-       // val searchDoctorButton: Button = findViewById(R.id.searchDoctorButton)
         val logoutButton: Button = findViewById(R.id.logoutButton)
 
         analyzeButton.setOnClickListener {
@@ -48,38 +46,10 @@ class SymptomsPage : AppCompatActivity() {
 
             if (!userSymptoms.isEmpty()) {
                 SymptomAnalyzer().execute(userSymptoms)
-                /*val selectedDoctor = getSpecialtyForSymptoms(userSymptoms)
-                if (selectedDoctor.isNotEmpty()) {
-                    resultTextView.text = "Recommended doctor for symptoms: $selectedDoctor"
-                    SearchDoctorTask().execute(selectedDoctor)
-                } else {
-                    resultTextView.text = "No matching doctor found for the given symptoms."
-                }*/
-
-
-                //
             } else {
                 resultTextView.text = "Please enter a symptom."
             }
         }
-
-        /*searchDoctorButton.setOnClickListener {
-            val userSymptoms = inputSymptomEditText.text.toString()
-            var selectedNpi: String = ""
-
-            if (!userSymptoms.isEmpty()) {
-                val selectedDoctor = getSpecialtyForSymptoms(userSymptoms)
-                if (selectedDoctor.second.isNotEmpty()) {
-                    selectedNpi = selectedDoctor.second
-                    SearchDoctorTask(selectedNpi).execute()
-                } else {
-                    resultTextView.text = "No matching doctor found for the given symptoms."
-                }
-            } else {
-                resultTextView.text = "Please enter a symptom."
-            }
-        }*/
-
 
         logoutButton.setOnClickListener {
             signOut()
@@ -92,20 +62,6 @@ class SymptomsPage : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
-
-    private fun getSpecialtyForSymptoms(symptoms: String): Pair<String, String> {
-        // Aici poți adăuga logica ta pentru a determina specialitatea doctorului și NPI-ul în funcție de simptome
-        // În exemplul de mai jos, se face o simplă comparare cu un șir de simptome predefinit
-        return when {
-            symptoms.contains("Malaria", ignoreCase = true) -> Pair("Neurologist", "1528098985")
-            symptoms.contains("Common cold", ignoreCase = true) -> Pair("doc", "1528098985")
-            symptoms.contains("Muscle strain", ignoreCase = true) -> Pair("wassup", "1164008991")
-            symptoms.contains("fever", ignoreCase = true) -> Pair("Internal Medicine", "1528098985")
-            // Adaugă alte cazuri pentru alte simptome sau modifică după necesitate
-            else -> Pair("", "")
-        }
-    }
-
 
     private inner class SymptomAnalyzer : AsyncTask<String, Void, String>() {
         override fun doInBackground(vararg symptoms: String): String {
@@ -133,62 +89,66 @@ class SymptomsPage : AppCompatActivity() {
                     response.append(line)
                 }
                 `in`.close()
-                val jsonObject = JSONObject(response.toString())
-                val npi = jsonObject.optString("npi", "")
-
-                // Returnează un Pair cu specialitatea și NPI-ul
-                getSpecialtyForSymptoms(symptoms[0]).copy(second = npi)
 
                 response.toString()
             } catch (e: IOException) {
                 e.printStackTrace()
                 "Error occurred."
-
             }
         }
 
         override fun onPostExecute(result: String) {
-            resultTextView.text = "Potential Causes:\n"
+            try {
+                val potentialCauses = parseSymptomsResult(result)
+                addSymptomsToFirestore(potentialCauses)
+            } catch (e: JSONException) {
+                e.printStackTrace()
+                resultTextView.text = "Error parsing response: ${e.message}"
+            }
+        }
+
+        private fun getSpecialtyForSymptoms(symptoms: String): Pair<String, String> {
+            return when {
+                symptoms.contains("Malaria", ignoreCase = true) -> Pair("Neurologist", "1528098985")
+                symptoms.contains("Common cold", ignoreCase = true) -> Pair("doc", "1528098985")
+                symptoms.contains("Muscle strain", ignoreCase = true) -> Pair("wassup", "1164008991")
+                symptoms.contains("fever", ignoreCase = true) -> Pair("Internal Medicine", "1528098985")
+                else -> Pair("", "")
+            }
+        }
+
+        private fun parseSymptomsResult(result: String): List<String> {
+            val potentialCausesList = mutableListOf<String>()
 
             try {
-                // Parsează răspunsul JSON
                 val jsonObject = JSONObject(result)
 
-                // Verifică dacă cheia "potentialCauses" există în răspunsul JSON și este un array
                 if (jsonObject.has("potentialCauses") && jsonObject["potentialCauses"] is JSONArray) {
-                    // Extrage lista de potențiale cauze
                     val potentialCausesArray = jsonObject.getJSONArray("potentialCauses")
 
-                    // Afișează lista de potențiale cauze în TextView
-                    resultTextView.append("Potential Causes:\n")
+                    resultTextView.text = "Potential Causes:\n"
+
 
                     for (i in 0 until potentialCausesArray.length()) {
                         val potentialCause = potentialCausesArray.getString(i)
                         resultTextView.append("${i + 1}: \"$potentialCause\"\n")
+                        potentialCausesList.add(potentialCause)
                     }
 
-                    // Afișează o linie goală înainte de recomandare
                     resultTextView.append("\n")
 
-                    // Verifică dacă există cel puțin o potențială cauză care corespunde cu specialitatea introdusă manual
                     for (i in 0 until potentialCausesArray.length()) {
                         val potentialCause = potentialCausesArray.getString(i)
 
-                        // Verifică dacă potențiala cauză corespunde cu specialitatea introdusă manual
                         val (selectedSpecialty, selectedNpi) = getSpecialtyForSymptoms(potentialCause)
 
                         if (selectedSpecialty.isNotBlank()) {
                             resultTextView.append("Recommended doctor for matching cause \"$potentialCause\": $selectedSpecialty\nNPI: $selectedNpi\n")
-
-                            // Execută SearchDoctorTask() aici, după ce ai găsit o potențială cauză care corespunde
                             SearchDoctorTask(selectedNpi).execute()
-
-                            // Întrerupe bucla după ce ai găsit o potențială cauză care corespunde
                             break
                         }
                     }
 
-                    // Afiseaza un mesaj dacă nu s-a găsit nicio potențială cauză care să corespundă
                     resultTextView.append("No matching doctor found for the given symptoms.\n")
                 } else {
                     resultTextView.text = "Error: 'potentialCauses' key is missing or not an array in the JSON response."
@@ -198,6 +158,23 @@ class SymptomsPage : AppCompatActivity() {
                 e.printStackTrace()
                 resultTextView.text = "Error parsing response: ${e.message}"
             }
+
+            return potentialCausesList
+        }
+    }
+
+    private fun addSymptomsToFirestore(potentialCauses: List<String>) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        currentUser?.let { user ->
+            val userDocument = FirebaseFirestore.getInstance().collection("users").document(user.uid)
+
+            userDocument.update("potentialCauses", FieldValue.arrayUnion(*potentialCauses.toTypedArray()))
+                .addOnSuccessListener {
+                   // resultTextView.text = "Potential Causes added to Firestore."
+                }
+                .addOnFailureListener { e ->
+                    //resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
+                }
         }
     }
 
@@ -206,6 +183,7 @@ class SymptomsPage : AppCompatActivity() {
             return try {
                 val apiUrl = "https://us-doctors-and-medical-professionals.p.rapidapi.com/search_npi?npi=$selectedNpi"
                 val url = URL(apiUrl)
+
                 val urlConnection = url.openConnection() as HttpURLConnection
                 urlConnection.setRequestProperty("X-RapidAPI-Key", "3805f589d9msh0dd1ef9116386fdp179a17jsnb1d6e94282e9")
                 urlConnection.setRequestProperty("X-RapidAPI-Host", "us-doctors-and-medical-professionals.p.rapidapi.com")
@@ -228,28 +206,7 @@ class SymptomsPage : AppCompatActivity() {
 
         override fun onPostExecute(result: String) {
             try {
-                // Parsează răspunsul JSON
-                val jsonObject = JSONObject(result)
-
-                // Verifică dacă cheia "Data" există în răspunsul JSON și nu este null
-                if (jsonObject.has("Data") && !jsonObject.isNull("Data")) {
-                    val dataObject = jsonObject.getJSONObject("Data")
-
-                    // Extrage numele și prenumele
-                    val providerFirstName = dataObject.getString("Provider_First_Name")
-                    val providerLastName = dataObject.getString("ProviderLastName_Legal_Name")
-
-
-                    // Afișează numele și prenumele în TextView
-                    doctorInfoTextView.text = "Name: $providerFirstName $providerLastName"
-
-                    doctorInfoTextView.visibility = View.VISIBLE
-                } else {
-                    resultTextView.text = "npiii: $selectedNpi"
-                    doctorInfoTextView.text = ""
-                    doctorInfoTextView.visibility = View.GONE
-                    //  resultTextView.text = "No data available for the provided NPI."
-                }
+                parseDoctorInfo(result)
             } catch (e: JSONException) {
                 e.printStackTrace()
                 doctorInfoTextView.text = "Error parsing response: ${e.message}"
@@ -258,4 +215,25 @@ class SymptomsPage : AppCompatActivity() {
         }
     }
 
+    private fun parseDoctorInfo(result: String) {
+        try {
+            val jsonObject = JSONObject(result)
+
+            if (jsonObject.has("Data") && !jsonObject.isNull("Data")) {
+                val dataObject = jsonObject.getJSONObject("Data")
+                val providerFirstName = dataObject.getString("Provider_First_Name")
+                val providerLastName = dataObject.getString("ProviderLastName_Legal_Name")
+
+                doctorInfoTextView.text = "Name: $providerFirstName $providerLastName"
+                doctorInfoTextView.visibility = View.VISIBLE
+            } else {
+                doctorInfoTextView.text = "No data available for the provided NPI."
+                doctorInfoTextView.visibility = View.VISIBLE
+            }
+        } catch (e: JSONException) {
+            e.printStackTrace()
+            doctorInfoTextView.text = "Error parsing response: ${e.message}"
+            doctorInfoTextView.visibility = View.VISIBLE
+        }
+    }
 }
