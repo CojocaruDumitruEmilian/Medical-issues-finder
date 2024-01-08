@@ -115,9 +115,14 @@ class SymptomsPage : AppCompatActivity() {
         private fun getSpecialtyForSymptoms(symptoms: String): Pair<String, String> {
             return when {
                 symptoms.contains("Malaria", ignoreCase = true) -> Pair("Neurologist", "1528098985")
-                symptoms.contains("Common cold", ignoreCase = true) -> Pair("doc", "1528098985")
-                symptoms.contains("Muscle strain", ignoreCase = true) -> Pair("wassup", "1164008991")
+                symptoms.contains("Common cold", ignoreCase = true) -> Pair("internist", "1528098985")
+                symptoms.contains("Muscle strain", ignoreCase = true) -> Pair("orthopedic ", "1164008991")
                 symptoms.contains("fever", ignoreCase = true) -> Pair("Internal Medicine", "1528098985")
+                symptoms.contains("skin", ignoreCase = true) -> Pair("Dermatologist", "1639380884")
+                symptoms.contains("lung", ignoreCase = true) -> Pair("Pulmonogist", "1013302090")
+                symptoms.contains("liver", ignoreCase = true) -> Pair("Hepatologist", "1346415700")
+
+
                 else -> Pair("", "")
             }
         }
@@ -148,13 +153,13 @@ class SymptomsPage : AppCompatActivity() {
                         val (selectedSpecialty, selectedNpi) = getSpecialtyForSymptoms(potentialCause)
 
                         if (selectedSpecialty.isNotBlank()) {
-                            resultTextView.append("Recommended doctor for matching cause \"$potentialCause\": $selectedSpecialty\nNPI: $selectedNpi\n")
+                            resultTextView.append("\nNPI: $selectedNpi\n")
                             SearchDoctorTask(selectedNpi).execute()
                             break
                         }
                     }
 
-                    resultTextView.append("No matching doctor found for the given symptoms.\n")
+                    //resultTextView.append("No matching doctor found for the given symptoms.\n")
                 } else {
                     resultTextView.text = "Error: 'potentialCauses' key is missing or not an array in the JSON response."
                 }
@@ -179,10 +184,10 @@ class SymptomsPage : AppCompatActivity() {
                         // Document existent, actualizați lista de cauze potențiale
                         userDocument.update("potentialCauses", FieldValue.arrayUnion(*potentialCauses.toTypedArray()))
                             .addOnSuccessListener {
-                                resultTextView.text = "Potential Causes added to Firestore."
+                               // resultTextView.text = "Potential Causes added to Firestore."
                             }
                             .addOnFailureListener { e ->
-                                resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
+                                //resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
                             }
                     } else {
                         // Document inexistent, creați documentul și adăugați lista de cauze potențiale
