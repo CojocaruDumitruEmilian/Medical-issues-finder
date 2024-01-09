@@ -15,6 +15,12 @@
         android:theme="@style/Theme.ProiectDiploma"
         tools:targetApi="31">
         <activity
+            android:name=".UserAppointmentsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AppointmentActivity"
+            android:exported="false" />
+        <activity
             android:name=".SymptomsPage"
             android:exported="false" />
         <activity

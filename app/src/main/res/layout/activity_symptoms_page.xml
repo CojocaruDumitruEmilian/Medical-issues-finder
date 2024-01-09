@@ -20,14 +20,13 @@
 
     <TextView
         android:id="@+id/doctorInfoTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="0dp"
+        android:layout_height="9dp"
+        android:layout_marginBottom="16dp"
         android:text=""
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginBottom="16dp"
-        />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <EditText
         android:id="@+id/inputSymptom"
@@ -50,6 +49,14 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="20dp"
         />
+
+    <Button
+        android:id="@+id/viewAppointmentsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="View Appointments"
+        android:layout_marginTop="16dp"
+        tools:ignore="MissingConstraints" />
 
     <!-- Adaugă spațiu între simptome și informații despre doctori -->
     <Space

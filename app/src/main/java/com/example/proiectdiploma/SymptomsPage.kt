@@ -3,6 +3,7 @@ package com.example.proiectdiploma
 import android.content.Intent
 import android.os.AsyncTask
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -27,6 +28,8 @@ class SymptomsPage : AppCompatActivity() {
     private lateinit var inputSymptomEditText: EditText
     private lateinit var inputNpiEditText: EditText
     private lateinit var doctorInfoTextView: TextView
+    private var providerFirstName: String = ""
+    private var providerLastName: String = ""
 
     private var selectedNpi: String = ""
 
@@ -54,6 +57,25 @@ class SymptomsPage : AppCompatActivity() {
         logoutButton.setOnClickListener {
             signOut()
         }
+        // În cadrul metodei onCreate a clasei SymptomsPage
+        doctorInfoTextView.setOnClickListener {
+            val intent = Intent(this, AppointmentActivity::class.java)
+            intent.putExtra("DoctorFirstName", providerFirstName)
+            intent.putExtra("DoctorLastName", providerLastName)
+            intent.putExtra("Npi", selectedNpi)
+            Log.d("SymptomsPage", "ProviderFirstName: $providerFirstName, ProviderLastName: $providerLastName, Npi: $selectedNpi")
+
+            startActivity(intent)
+        }
+
+        val viewAppointmentsButton: Button = findViewById(R.id.viewAppointmentsButton)
+
+        viewAppointmentsButton.setOnClickListener {
+            // Deschide activitatea pentru afișarea programărilor utilizatorului
+            val intent = Intent(this, UserAppointmentsActivity::class.java)
+            startActivity(intent)
+        }
+
     }
 
     private fun signOut() {
@@ -62,6 +84,8 @@ class SymptomsPage : AppCompatActivity() {
         startActivity(intent)
         finish()
     }
+
+
 
     private inner class SymptomAnalyzer : AsyncTask<String, Void, String>() {
         override fun doInBackground(vararg symptoms: String): String {
@@ -250,8 +274,8 @@ class SymptomsPage : AppCompatActivity() {
 
             if (jsonObject.has("Data") && !jsonObject.isNull("Data")) {
                 val dataObject = jsonObject.getJSONObject("Data")
-                val providerFirstName = dataObject.getString("Provider_First_Name")
-                val providerLastName = dataObject.getString("ProviderLastName_Legal_Name")
+                 providerFirstName = dataObject.getString("Provider_First_Name")
+                providerLastName = dataObject.getString("ProviderLastName_Legal_Name")
 
                 doctorInfoTextView.text = "Name: $providerFirstName $providerLastName"
                 doctorInfoTextView.visibility = View.VISIBLE
