@@ -7,6 +7,8 @@ import android.widget.Button
 import android.widget.DatePicker
 import android.widget.TextView
 import android.widget.TimePicker
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 
 class AppointmentActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,11 +30,24 @@ class AppointmentActivity : AppCompatActivity() {
             val selectedDate = "${datePicker.year}-${datePicker.month + 1}-${datePicker.dayOfMonth}"
             val selectedTime = "${timePicker.hour}:${timePicker.minute}"
 
-            val appointmentDetails = "Appointment with $doctorFirstName $doctorLastName on $selectedDate at $selectedTime"
+            val appointmentDetailsText = "Appointment with $doctorFirstName $doctorLastName on $selectedDate at $selectedTime"
 
-            // Afiseaza detalii într-un TextView sau în alt mod dorit
+            // Afișează detalii într-un TextView sau în alt mod dorit
             val appointmentDetailsTextView: TextView = findViewById(R.id.appointmentDetailsTextView)
-            appointmentDetailsTextView.text = appointmentDetails
+            appointmentDetailsTextView.text = appointmentDetailsText
+
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            currentUser?.let { user ->
+                val uid = user.uid
+                val appointmentsRef = FirebaseDatabase.getInstance().getReference("appointments/$uid")
+
+                val appointmentId = appointmentsRef.push().key
+
+                appointmentId?.let {
+                    val appointmentDetails = "Appointment with $doctorFirstName $doctorLastName on $selectedDate at $selectedTime"
+                    appointmentsRef.child(it).setValue(appointmentDetails)
+                }
+            }
 
             val intent = Intent(this, UserAppointmentsActivity::class.java)
             intent.putExtra("DoctorFirstName", doctorFirstName)

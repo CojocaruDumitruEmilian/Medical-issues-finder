@@ -26,12 +26,11 @@ class SymptomsPage : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var resultTextView: TextView
     private lateinit var inputSymptomEditText: EditText
-    private lateinit var inputNpiEditText: EditText
     private lateinit var doctorInfoTextView: TextView
     private var providerFirstName: String = ""
     private var providerLastName: String = ""
-
     private var selectedNpi: String = ""
+       var potentialCausesArray: JSONArray?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,10 +42,10 @@ class SymptomsPage : AppCompatActivity() {
 
         val analyzeButton: Button = findViewById(R.id.analyzeButton)
         val logoutButton: Button = findViewById(R.id.logoutButton)
+        val viewAppointmentsButton: Button = findViewById(R.id.viewAppointmentsButton)
 
         analyzeButton.setOnClickListener {
             val userSymptoms = inputSymptomEditText.text.toString()
-
             if (!userSymptoms.isEmpty()) {
                 SymptomAnalyzer().execute(userSymptoms)
             } else {
@@ -57,25 +56,38 @@ class SymptomsPage : AppCompatActivity() {
         logoutButton.setOnClickListener {
             signOut()
         }
-        // În cadrul metodei onCreate a clasei SymptomsPage
+
         doctorInfoTextView.setOnClickListener {
             val intent = Intent(this, AppointmentActivity::class.java)
             intent.putExtra("DoctorFirstName", providerFirstName)
             intent.putExtra("DoctorLastName", providerLastName)
             intent.putExtra("Npi", selectedNpi)
             Log.d("SymptomsPage", "ProviderFirstName: $providerFirstName, ProviderLastName: $providerLastName, Npi: $selectedNpi")
-
             startActivity(intent)
         }
-
-        val viewAppointmentsButton: Button = findViewById(R.id.viewAppointmentsButton)
 
         viewAppointmentsButton.setOnClickListener {
             // Deschide activitatea pentru afișarea programărilor utilizatorului
             val intent = Intent(this, UserAppointmentsActivity::class.java)
+
+
             startActivity(intent)
         }
 
+
+    }
+
+    private fun getSpecialtyForSymptoms(symptoms: String): Pair<String, String> {
+        return when {
+            symptoms.contains("Malaria", ignoreCase = true) -> Pair("Neurologist", "1528098985")
+            symptoms.contains("Common cold", ignoreCase = true) -> Pair("Internist", "1528098985")
+            symptoms.contains("Muscle strain", ignoreCase = true) -> Pair("Orthopedic", "1164008991")
+            symptoms.contains("Fever", ignoreCase = true) -> Pair("Internal Medicine", "1528098985")
+            symptoms.contains("Skin", ignoreCase = true) -> Pair("Dermatologist", "1639380884")
+            symptoms.contains("Lung", ignoreCase = true) -> Pair("Pulmonologist", "1013302090")
+            symptoms.contains("Liver", ignoreCase = true) -> Pair("Hepatologist", "1346415700")
+            else -> Pair("", "")
+        }
     }
 
     private fun signOut() {
@@ -85,12 +97,9 @@ class SymptomsPage : AppCompatActivity() {
         finish()
     }
 
-
-
     private inner class SymptomAnalyzer : AsyncTask<String, Void, String>() {
         override fun doInBackground(vararg symptoms: String): String {
             return try {
-
                 val apiUrl = "https://symptom-checker4.p.rapidapi.com/analyze"
                 val url = URL(apiUrl)
 
@@ -116,7 +125,6 @@ class SymptomsPage : AppCompatActivity() {
                 `in`.close()
 
                 response.toString()
-
             } catch (e: IOException) {
                 e.printStackTrace()
                 "Error occurred."
@@ -136,20 +144,7 @@ class SymptomsPage : AppCompatActivity() {
             }
         }
 
-        private fun getSpecialtyForSymptoms(symptoms: String): Pair<String, String> {
-            return when {
-                symptoms.contains("Malaria", ignoreCase = true) -> Pair("Neurologist", "1528098985")
-                symptoms.contains("Common cold", ignoreCase = true) -> Pair("internist", "1528098985")
-                symptoms.contains("Muscle strain", ignoreCase = true) -> Pair("orthopedic ", "1164008991")
-                symptoms.contains("fever", ignoreCase = true) -> Pair("Internal Medicine", "1528098985")
-                symptoms.contains("skin", ignoreCase = true) -> Pair("Dermatologist", "1639380884")
-                symptoms.contains("lung", ignoreCase = true) -> Pair("Pulmonogist", "1013302090")
-                symptoms.contains("liver", ignoreCase = true) -> Pair("Hepatologist", "1346415700")
 
-
-                else -> Pair("", "")
-            }
-        }
 
         private fun parseSymptomsResult(result: String): List<String> {
             val potentialCausesList = mutableListOf<String>()
@@ -162,7 +157,6 @@ class SymptomsPage : AppCompatActivity() {
 
                     resultTextView.text = "Potential Causes:\n"
 
-
                     for (i in 0 until potentialCausesArray.length()) {
                         val potentialCause = potentialCausesArray.getString(i)
                         resultTextView.append("${i + 1}: \"$potentialCause\"\n")
@@ -170,6 +164,8 @@ class SymptomsPage : AppCompatActivity() {
                     }
 
                     resultTextView.append("\n")
+
+                    this@SymptomsPage.potentialCausesArray = potentialCausesArray
 
                     for (i in 0 until potentialCausesArray.length()) {
                         val potentialCause = potentialCausesArray.getString(i)
@@ -182,8 +178,6 @@ class SymptomsPage : AppCompatActivity() {
                             break
                         }
                     }
-
-                    //resultTextView.append("No matching doctor found for the given symptoms.\n")
                 } else {
                     resultTextView.text = "Error: 'potentialCauses' key is missing or not an array in the JSON response."
                 }
@@ -208,7 +202,7 @@ class SymptomsPage : AppCompatActivity() {
                         // Document existent, actualizați lista de cauze potențiale
                         userDocument.update("potentialCauses", FieldValue.arrayUnion(*potentialCauses.toTypedArray()))
                             .addOnSuccessListener {
-                               // resultTextView.text = "Potential Causes added to Firestore."
+                                // resultTextView.text = "Potential Causes added to Firestore."
                             }
                             .addOnFailureListener { e ->
                                 //resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
@@ -217,10 +211,10 @@ class SymptomsPage : AppCompatActivity() {
                         // Document inexistent, creați documentul și adăugați lista de cauze potențiale
                         userDocument.set(mapOf("potentialCauses" to potentialCauses))
                             .addOnSuccessListener {
-                               // resultTextView.text = "Potential Causes added to Firestore."
+                                // resultTextView.text = "Potential Causes added to Firestore."
                             }
                             .addOnFailureListener { e ->
-                              //  resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
+                                //  resultTextView.text = "Error adding Potential Causes to Firestore: ${e.message}"
                             }
                     }
                 } else {
@@ -228,8 +222,6 @@ class SymptomsPage : AppCompatActivity() {
                 }
             }
     }
-
-
 
     private inner class SearchDoctorTask(private val selectedNpi: String) : AsyncTask<Void, Void, String>() {
         override fun doInBackground(vararg params: Void): String {
@@ -274,7 +266,7 @@ class SymptomsPage : AppCompatActivity() {
 
             if (jsonObject.has("Data") && !jsonObject.isNull("Data")) {
                 val dataObject = jsonObject.getJSONObject("Data")
-                 providerFirstName = dataObject.getString("Provider_First_Name")
+                providerFirstName = dataObject.getString("Provider_First_Name")
                 providerLastName = dataObject.getString("ProviderLastName_Legal_Name")
 
                 doctorInfoTextView.text = "Name: $providerFirstName $providerLastName"
