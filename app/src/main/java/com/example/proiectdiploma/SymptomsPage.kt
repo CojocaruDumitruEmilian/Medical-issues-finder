@@ -21,6 +21,9 @@ import java.io.InputStreamReader
 import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.RecognitionListener
 
 class SymptomsPage : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
@@ -74,8 +77,70 @@ class SymptomsPage : AppCompatActivity() {
             startActivity(intent)
         }
 
+        val voiceInputButton: Button = findViewById(R.id.voiceInputButton)
+
+        voiceInputButton.setOnClickListener {
+            startVoiceRecognition()
+        }
+
 
     }
+
+    private fun startVoiceRecognition() {
+        Log.d("SymptomsPage", "startVoiceRecognition() called")
+
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US") // Setează limba după nevoie
+
+        val recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        recognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {
+                Log.d("SymptomsPage", "onReadyForSpeech")
+            }
+
+            override fun onBeginningOfSpeech() {
+                Log.d("SymptomsPage", "onBeginningOfSpeech")
+            }
+
+            override fun onRmsChanged(rmsdB: Float) {
+                Log.d("SymptomsPage", "onRmsChanged: $rmsdB")
+            }
+
+            override fun onBufferReceived(buffer: ByteArray?) {
+                Log.d("SymptomsPage", "onBufferReceived")
+            }
+
+            override fun onEndOfSpeech() {
+                Log.d("SymptomsPage", "onEndOfSpeech")
+            }
+
+            override fun onError(error: Int) {
+                Log.e("SymptomsPage", "onError: $error")
+            }
+
+            override fun onResults(results: Bundle?) {
+                Log.d("SymptomsPage", "onResults")
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                if (matches != null && matches.isNotEmpty()) {
+                    val userSymptoms = matches[0]
+                    Log.d("SymptomsPage", "Recognized: $userSymptoms")
+                    inputSymptomEditText.setText(userSymptoms)
+                }
+            }
+
+            override fun onPartialResults(partialResults: Bundle?) {
+                Log.d("SymptomsPage", "onPartialResults")
+            }
+
+            override fun onEvent(eventType: Int, params: Bundle?) {
+                Log.d("SymptomsPage", "onEvent: $eventType")
+            }
+        })
+
+        recognizer.startListening(intent)
+    }
+
 
     private fun getSpecialtyForSymptoms(symptoms: String): Pair<String, String> {
         return when {
